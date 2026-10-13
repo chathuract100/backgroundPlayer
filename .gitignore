@@ -21,3 +21,6 @@ keystore.properties
 # OS / misc
 .DS_Store
 Thumbs.db
+
+# Superpowers SDD scratch workspace
+.superpowers/
