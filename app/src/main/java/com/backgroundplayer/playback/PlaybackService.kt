@@ -8,6 +8,12 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import com.backgroundplayer.App
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * Foreground [MediaSessionService] that owns the [ExoPlayer]. It plays in the
@@ -18,9 +24,12 @@ import androidx.media3.session.MediaSessionService
 class PlaybackService : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     override fun onCreate() {
         super.onCreate()
+
+        val repository = (application as App).container.repository
 
         val player = ExoPlayer.Builder(this)
             .setAudioAttributes(
@@ -35,6 +44,12 @@ class PlaybackService : MediaSessionService() {
 
         player.addListener(object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
+                if (PlaybackErrorPolicy.isFileUnavailable(error.errorCode)) {
+                    val trackId = player.currentMediaItem?.let(TrackMediaItem::trackId) ?: -1L
+                    if (trackId > 0) {
+                        serviceScope.launch { repository.markUnavailable(trackId) }
+                    }
+                }
                 when (PlaybackErrorPolicy.onError(player.hasNextMediaItem())) {
                     ErrorAction.SKIP_TO_NEXT -> {
                         player.seekToNextMediaItem()
@@ -60,6 +75,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        serviceScope.cancel()
         mediaSession?.run {
             player.release()
             release()
