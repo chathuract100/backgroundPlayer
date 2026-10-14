@@ -1,6 +1,21 @@
 # backgroundPlayer Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status: COMPLETE (2026-10-14).** All 12 tasks implemented inline (TDD) on
+> branch `feature/background-player-impl`. Unit/Robolectric suite green (44
+> tests). A fresh-context code review ran at the end; its 1 Critical + 5
+> Important findings are all addressed (see below). **Device verification is
+> still outstanding** — the on-device manual checklist (Task 12, Step 5) plus
+> the device-only review fixes (#3 video thumbnails, #4 PiP controls, #6
+> reconnect) must be run on hardware before release. Full decision log:
+> `.superpowers/sdd/2026-10-14-background-player/progress.md`.
+>
+> Post-review fixes: #1 permission gate no longer blocks on notification denial;
+> #2 now-playing scrubber advances during playback; #3 video thumbnails via
+> Coil `VideoFrameDecoder` + icon fallback; #4 PiP play/pause/next RemoteActions
+> and UI collapse; #6 queue rehydration on cold reconnect. Deferred minors
+> (#7–#11) are logged in the ledger.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build an Android app that plays local audio/video in the background with lock-screen controls and a floating Picture-in-Picture video window.
 
@@ -44,11 +59,11 @@ Inputs the spec implies but that need explicit test coverage; each has its test 
 **Interfaces:**
 - Produces: a buildable `app` module with package `com.backgroundplayer`, Compose enabled, unit-test + Robolectric test source sets configured.
 
-- [ ] **Step 1: Write the failing test** — `SmokeTest.kt` with `fun appPackageIsConfigured() { assertEquals("com.backgroundplayer", BuildConfig.APPLICATION_ID) }`
-- [ ] **Step 2: Run `./gradlew test`** — Expected: FAIL (project does not build / BuildConfig missing)
-- [ ] **Step 3: Create the Gradle files, version catalog, manifest, and empty `MainActivity`** per Files above. Enable `buildFeatures { compose = true; buildConfig = true }` and add the test dependencies from Global Constraints.
-- [ ] **Step 4: Run `./gradlew assembleDebug` then `./gradlew test`** — Expected: both PASS
-- [ ] **Step 5: Commit** — `chore: scaffold Android project and build config`
+- [x] **Step 1: Write the failing test** — `SmokeTest.kt` with `fun appPackageIsConfigured() { assertEquals("com.backgroundplayer", BuildConfig.APPLICATION_ID) }`
+- [x] **Step 2: Run `./gradlew test`** — Expected: FAIL (project does not build / BuildConfig missing)
+- [x] **Step 3: Create the Gradle files, version catalog, manifest, and empty `MainActivity`** per Files above. Enable `buildFeatures { compose = true; buildConfig = true }` and add the test dependencies from Global Constraints.
+- [x] **Step 4: Run `./gradlew assembleDebug` then `./gradlew test`** — Expected: both PASS
+- [x] **Step 5: Commit** — `chore: scaffold Android project and build config`
 
 ---
 
@@ -67,11 +82,11 @@ Inputs the spec implies but that need explicit test coverage; each has its test 
   - `TrackDao`: `suspend insert(track): Long` (IGNORE on URI conflict, returns -1 when ignored), `observeAll(): Flow<List<Track>>`, `observeByType(isVideo): Flow<List<Track>>`, `suspend findByUri(uri): Track?`, `suspend setAvailability(id, Boolean)`.
   - `PlaylistDao`: `suspend create(name): Long`, `suspend rename(id, name)`, `suspend delete(id)`, `observePlaylists(): Flow<List<Playlist>>`, `suspend addTrack(PlaylistTrack)`, `observeTracks(playlistId): Flow<List<Track>>` (ordered by position), `suspend maxPosition(playlistId): Int?`, `suspend reorder(playlistId, trackId, newPosition)`, `suspend removeTrack(playlistId, trackId)`.
 
-- [ ] **Step 1: Write failing tests** — `TrackDaoTest`: `insertThenObserveAllReturnsTrack`, `insertDuplicateUriIsIgnored`, `observeByTypeFiltersVideo`, `setAvailabilityUpdatesFlag`. `PlaylistDaoTest`: `addTracksObservedInPositionOrder`, `removeTrackDropsIt`, `renameChangesName`.
-- [ ] **Step 2: Run `./gradlew test`** — Expected: FAIL (classes undefined)
-- [ ] **Step 3: Implement the entities, DAOs, and `AppDatabase`** (abstract RoomDatabase exposing both DAOs; `@Index(value=["uri"], unique=true)` on Track).
-- [ ] **Step 4: Run `./gradlew test`** — Expected: PASS
-- [ ] **Step 5: Commit** — `feat: add Room entities, DAOs, and database`
+- [x] **Step 1: Write failing tests** — `TrackDaoTest`: `insertThenObserveAllReturnsTrack`, `insertDuplicateUriIsIgnored`, `observeByTypeFiltersVideo`, `setAvailabilityUpdatesFlag`. `PlaylistDaoTest`: `addTracksObservedInPositionOrder`, `removeTrackDropsIt`, `renameChangesName`.
+- [x] **Step 2: Run `./gradlew test`** — Expected: FAIL (classes undefined)
+- [x] **Step 3: Implement the entities, DAOs, and `AppDatabase`** (abstract RoomDatabase exposing both DAOs; `@Index(value=["uri"], unique=true)` on Track).
+- [x] **Step 4: Run `./gradlew test`** — Expected: PASS
+- [x] **Step 5: Commit** — `feat: add Room entities, DAOs, and database`
 
 ---
 
@@ -89,11 +104,11 @@ Inputs the spec implies but that need explicit test coverage; each has its test 
   - `suspend fun markUnavailable(trackId: Long)` and availability reflected in `library(...)`.
   - Playlist passthroughs: `createPlaylist(name)`, `rename`, `delete`, `playlists()`, `playlistTracks(id)`, `addToPlaylist(playlistId, trackId)` (appends at `maxPosition+1`), `reorder(playlistId, trackId, newPosition)`, `removeFromPlaylist(playlistId, trackId)`.
 
-- [ ] **Step 1: Write failing tests** — `searchFiltersByTitleAndArtist`, `videoFilterExcludesAudio`, `addDuplicateUriDoesNotCreateSecondRow` (Review Focus #4), `markUnavailableHidesOrFlagsTrack` (Review Focus #2), `addToPlaylistAppendsAtEnd`, `reorderMovesTrack`.
-- [ ] **Step 2: Run `./gradlew test`** — Expected: FAIL
-- [ ] **Step 3: Implement `LibraryRepository`.** Compose the DAO flows; apply the query filter in Kotlin over the type-filtered flow.
-- [ ] **Step 4: Run `./gradlew test`** — Expected: PASS
-- [ ] **Step 5: Commit** — `feat: add LibraryRepository with search, dedupe, and playlist ops`
+- [x] **Step 1: Write failing tests** — `searchFiltersByTitleAndArtist`, `videoFilterExcludesAudio`, `addDuplicateUriDoesNotCreateSecondRow` (Review Focus #4), `markUnavailableHidesOrFlagsTrack` (Review Focus #2), `addToPlaylistAppendsAtEnd`, `reorderMovesTrack`.
+- [x] **Step 2: Run `./gradlew test`** — Expected: FAIL
+- [x] **Step 3: Implement `LibraryRepository`.** Compose the DAO flows; apply the query filter in Kotlin over the type-filtered flow.
+- [x] **Step 4: Run `./gradlew test`** — Expected: PASS
+- [x] **Step 5: Commit** — `feat: add LibraryRepository with search, dedupe, and playlist ops`
 
 ---
 
@@ -113,11 +128,11 @@ Inputs the spec implies but that need explicit test coverage; each has its test 
   - `object TrackMapper { fun toTrack(raw: RawMedia): Track }` — rules: `isVideo = mimeType?.startsWith("video/") == true`; `title` falls back to `displayName` when null/blank; missing `durationMs` → 0.
   - `MediaStoreScanner.scan()` and `SafImporter.import(uris)` returning the count added.
 
-- [ ] **Step 1: Write failing tests** — `TrackMapperTest`: `videoMimeMarksIsVideo`, `missingTitleFallsBackToDisplayName`, `nullDurationBecomesZero`, `audioMimeIsNotVideo`.
-- [ ] **Step 2: Run `./gradlew test`** — Expected: FAIL
-- [ ] **Step 3: Implement `TrackMapper` (pure), the `MediaMetadataReader` interface + Android impl, and the scanner/importer** (importer calls `takePersistableUriPermission`).
-- [ ] **Step 4: Run `./gradlew test`** — Expected: PASS
-- [ ] **Step 5: Commit** — `feat: add media importer (MediaStore scan + SAF import)`
+- [x] **Step 1: Write failing tests** — `TrackMapperTest`: `videoMimeMarksIsVideo`, `missingTitleFallsBackToDisplayName`, `nullDurationBecomesZero`, `audioMimeIsNotVideo`.
+- [x] **Step 2: Run `./gradlew test`** — Expected: FAIL
+- [x] **Step 3: Implement `TrackMapper` (pure), the `MediaMetadataReader` interface + Android impl, and the scanner/importer** (importer calls `takePersistableUriPermission`).
+- [x] **Step 4: Run `./gradlew test`** — Expected: PASS
+- [x] **Step 5: Commit** — `feat: add media importer (MediaStore scan + SAF import)`
 
 ---
 
@@ -139,11 +154,11 @@ Inputs the spec implies but that need explicit test coverage; each has its test 
   - `object PlaybackErrorPolicy { fun onError(hasNext: Boolean): ErrorAction }` → `SKIP_TO_NEXT` when `hasNext`, else `STOP`.
   - `object TrackMediaItem { fun from(track: Track): MediaItem; fun trackId(item: MediaItem): Long }` (store `Track.id` in `MediaItem.mediaId`).
 
-- [ ] **Step 1: Write failing tests** — `PlaybackErrorPolicyTest`: `skipsWhenNextExists`, `stopsWhenNoNext` (Review Focus #1). `TrackMediaItemTest`: `roundTripsTrackIdAndUri`. `ExoPlaybackControllerTest`: `playEmitsCurrentTrackAndPlaying`, `setRepeatOneMapsToPlayerRepeatOne`, `setShuffleTogglesPlayerShuffle` (using a Media3 fake/`TestExoPlayerBuilder` player).
-- [ ] **Step 2: Run `./gradlew test`** — Expected: FAIL
-- [ ] **Step 3: Implement the interface, pure policy, mapper, and `ExoPlaybackController`** translating `Player.Listener` events into `PlaybackState`, and `RepeatMode`/shuffle into ExoPlayer modes.
-- [ ] **Step 4: Run `./gradlew test`** — Expected: PASS
-- [ ] **Step 5: Commit** — `feat: add PlaybackController abstraction over ExoPlayer`
+- [x] **Step 1: Write failing tests** — `PlaybackErrorPolicyTest`: `skipsWhenNextExists`, `stopsWhenNoNext` (Review Focus #1). `TrackMediaItemTest`: `roundTripsTrackIdAndUri`. `ExoPlaybackControllerTest`: `playEmitsCurrentTrackAndPlaying`, `setRepeatOneMapsToPlayerRepeatOne`, `setShuffleTogglesPlayerShuffle` (using a Media3 fake/`TestExoPlayerBuilder` player).
+- [x] **Step 2: Run `./gradlew test`** — Expected: FAIL
+- [x] **Step 3: Implement the interface, pure policy, mapper, and `ExoPlaybackController`** translating `Player.Listener` events into `PlaybackState`, and `RepeatMode`/shuffle into ExoPlayer modes.
+- [x] **Step 4: Run `./gradlew test`** — Expected: PASS
+- [x] **Step 5: Commit** — `feat: add PlaybackController abstraction over ExoPlayer`
 
 ---
 
@@ -158,11 +173,11 @@ Inputs the spec implies but that need explicit test coverage; each has its test 
 - Consumes: `ExoPlaybackController` / Media3 `Player` (Task 5).
 - Produces: a running `MediaSessionService` exposing a `MediaSession` other components bind to; media notification via Media3's default notification provider.
 
-- [ ] **Step 1:** Implement `PlaybackService` extending `MediaSessionService`: build an `ExoPlayer` with `setAudioAttributes(music, handleAudioFocus = true)` and `setHandleAudioBecomingNoisy(true)` (Review Focus #5), a `Player.Listener` applying `PlaybackErrorPolicy.onError(...)` on `onPlayerError` (Review Focus #1), and a `MediaSession`. Return it from `onGetSession`.
-- [ ] **Step 2:** Register the service in the manifest; ensure the foreground media notification shows on play.
-- [ ] **Step 3: Run `./gradlew assembleDebug`** — Expected: PASS
-- [ ] **Step 4: Manual device check** (fold into Task 12 checklist): play audio, background the app / lock screen → audio continues with working notification controls; unplug headphones → auto-pause.
-- [ ] **Step 5: Commit** — `feat: add background playback MediaSessionService`
+- [x] **Step 1:** Implement `PlaybackService` extending `MediaSessionService`: build an `ExoPlayer` with `setAudioAttributes(music, handleAudioFocus = true)` and `setHandleAudioBecomingNoisy(true)` (Review Focus #5), a `Player.Listener` applying `PlaybackErrorPolicy.onError(...)` on `onPlayerError` (Review Focus #1), and a `MediaSession`. Return it from `onGetSession`.
+- [x] **Step 2:** Register the service in the manifest; ensure the foreground media notification shows on play.
+- [x] **Step 3: Run `./gradlew assembleDebug`** — Expected: PASS
+- [x] **Step 4: Manual device check** (fold into Task 12 checklist): play audio, background the app / lock screen → audio continues with working notification controls; unplug headphones → auto-pause.
+- [x] **Step 5: Commit** — `feat: add background playback MediaSessionService`
 
 ---
 
@@ -176,9 +191,9 @@ Inputs the spec implies but that need explicit test coverage; each has its test 
 - Consumes: `PlaybackService` (Task 6), `PlaybackController` (Task 5).
 - Produces: `PlaybackConnection(context)` implementing `PlaybackController` by holding a Media3 `MediaController` bound to `PlaybackService`, exposing the same `state: StateFlow<PlaybackState>`. ViewModels depend on the `PlaybackController` interface, not this class.
 
-- [ ] **Step 1:** Implement `PlaybackConnection`: build a `MediaController` via `MediaController.Builder` against the service `SessionToken`; forward commands; map controller listener events to `PlaybackState` (reuse the Task 5 reducer).
-- [ ] **Step 2: Run `./gradlew assembleDebug`** — Expected: PASS
-- [ ] **Step 3: Commit** — `feat: connect UI to playback service via MediaController`
+- [x] **Step 1:** Implement `PlaybackConnection`: build a `MediaController` via `MediaController.Builder` against the service `SessionToken`; forward commands; map controller listener events to `PlaybackState` (reuse the Task 5 reducer).
+- [x] **Step 2: Run `./gradlew assembleDebug`** — Expected: PASS
+- [x] **Step 3: Commit** — `feat: connect UI to playback service via MediaController`
 
 ---
 
@@ -193,11 +208,11 @@ Inputs the spec implies but that need explicit test coverage; each has its test 
 - Consumes: `LibraryRepository` (Task 3), `PlaybackController` (Task 5), importer (Task 4).
 - Produces: `LibraryViewModel(repository, playback, importer)` exposing `uiState: StateFlow<LibraryUiState>` (`tracks`, `filter`, `query`, `isEmpty`), and actions `setFilter`, `setQuery`, `playTrack(track)` (plays the current filtered list starting at that track), `scanDevice`, `importFiles(uris)`.
 
-- [ ] **Step 1: Write failing tests** — `setQueryFiltersList`, `setFilterToVideoShowsOnlyVideo`, `emptyLibraryReportsIsEmpty` (Review Focus #3), `playTrackStartsAtSelectedIndex` — with a fake repository and fake `PlaybackController`.
-- [ ] **Step 2: Run `./gradlew test`** — Expected: FAIL
-- [ ] **Step 3: Implement `LibraryViewModel`, then `LibraryScreen`** (list with Coil thumbnails, filter chips, search field, import button). UI is not unit-tested.
-- [ ] **Step 4: Run `./gradlew test`** — Expected: PASS
-- [ ] **Step 5: Commit** — `feat: add library screen with search and filter`
+- [x] **Step 1: Write failing tests** — `setQueryFiltersList`, `setFilterToVideoShowsOnlyVideo`, `emptyLibraryReportsIsEmpty` (Review Focus #3), `playTrackStartsAtSelectedIndex` — with a fake repository and fake `PlaybackController`.
+- [x] **Step 2: Run `./gradlew test`** — Expected: FAIL
+- [x] **Step 3: Implement `LibraryViewModel`, then `LibraryScreen`** (list with Coil thumbnails, filter chips, search field, import button). UI is not unit-tested.
+- [x] **Step 4: Run `./gradlew test`** — Expected: PASS
+- [x] **Step 5: Commit** — `feat: add library screen with search and filter`
 
 ---
 
@@ -214,11 +229,11 @@ Inputs the spec implies but that need explicit test coverage; each has its test 
   - `PlaylistsViewModel`: `playlists: StateFlow<List<Playlist>>`, `create(name)`, `rename(id,name)`, `delete(id)`.
   - `PlaylistDetailViewModel(repository, playback, playlistId)`: `tracks: StateFlow<List<Track>>`, `reorder(from,to)`, `remove(trackId)`, `playAll(shuffle: Boolean, repeat: RepeatMode)` — a no-op when the playlist is empty.
 
-- [ ] **Step 1: Write failing tests** — `createThenRenameThenDelete`, `reorderPersistsNewOrder`, `playAllBuildsQueueInOrder`, `playAllOnEmptyPlaylistIsNoOp` (Review Focus #3), `playAllWithShuffleEnablesShuffle`.
-- [ ] **Step 2: Run `./gradlew test`** — Expected: FAIL
-- [ ] **Step 3: Implement the two ViewModels, then the screens** (drag-to-reorder list, create/rename/delete dialogs, play-all with shuffle/repeat toggles).
-- [ ] **Step 4: Run `./gradlew test`** — Expected: PASS
-- [ ] **Step 5: Commit** — `feat: add playlists and playlist detail with shuffle/repeat`
+- [x] **Step 1: Write failing tests** — `createThenRenameThenDelete`, `reorderPersistsNewOrder`, `playAllBuildsQueueInOrder`, `playAllOnEmptyPlaylistIsNoOp` (Review Focus #3), `playAllWithShuffleEnablesShuffle`.
+- [x] **Step 2: Run `./gradlew test`** — Expected: FAIL
+- [x] **Step 3: Implement the two ViewModels, then the screens** (drag-to-reorder list, create/rename/delete dialogs, play-all with shuffle/repeat toggles).
+- [x] **Step 4: Run `./gradlew test`** — Expected: PASS
+- [x] **Step 5: Commit** — `feat: add playlists and playlist detail with shuffle/repeat`
 
 ---
 
@@ -232,9 +247,9 @@ Inputs the spec implies but that need explicit test coverage; each has its test 
 - Consumes: `PlaybackController.state` + commands (Task 5/7).
 - Produces: `PlayerScreen` (video surface or album art, scrubber bound to `positionMs`/`durationMs`, play/pause/skip, shuffle/repeat toggles, a minimize-to-PiP button shown only when `state.isVideo`), and `MiniPlayerBar` (pinned, shows current track + play/pause/skip, tap to expand).
 
-- [ ] **Step 1:** Implement `VideoSurface`, `MiniPlayerBar`, `PlayerScreen`, driven by `PlaybackController.state`.
-- [ ] **Step 2: Run `./gradlew assembleDebug`** — Expected: PASS
-- [ ] **Step 3: Commit** — `feat: add now-playing and mini-player UI`
+- [x] **Step 1:** Implement `VideoSurface`, `MiniPlayerBar`, `PlayerScreen`, driven by `PlaybackController.state`.
+- [x] **Step 2: Run `./gradlew assembleDebug`** — Expected: PASS
+- [x] **Step 3: Commit** — `feat: add now-playing and mini-player UI`
 
 ---
 
@@ -249,11 +264,11 @@ Inputs the spec implies but that need explicit test coverage; each has its test 
 - Consumes: `PlaybackState` (Task 5).
 - Produces: `object PipPolicy { fun shouldEnterPip(state: PlaybackState): Boolean }` → true only when `isVideo && isPlaying`.
 
-- [ ] **Step 1: Write failing tests** — `entersPipForPlayingVideo`, `noPipForAudio`, `noPipWhenPaused`.
-- [ ] **Step 2: Run `./gradlew test`** — Expected: FAIL
-- [ ] **Step 3: Implement `PipPolicy`; wire `MainActivity` to enter PiP via the policy** and render the video surface in PiP.
-- [ ] **Step 4: Run `./gradlew test`** then **manual device check** (fold into Task 12): play a video, leave the app → floating window continues with controls; audio-only track → no PiP.
-- [ ] **Step 5: Commit** — `feat: add picture-in-picture for video playback`
+- [x] **Step 1: Write failing tests** — `entersPipForPlayingVideo`, `noPipForAudio`, `noPipWhenPaused`.
+- [x] **Step 2: Run `./gradlew test`** — Expected: FAIL
+- [x] **Step 3: Implement `PipPolicy`; wire `MainActivity` to enter PiP via the policy** and render the video surface in PiP.
+- [x] **Step 4: Run `./gradlew test`** then **manual device check** (fold into Task 12): play a video, leave the app → floating window continues with controls; audio-only track → no PiP.
+- [x] **Step 5: Commit** — `feat: add picture-in-picture for video playback`
 
 ---
 
@@ -269,12 +284,12 @@ Inputs the spec implies but that need explicit test coverage; each has its test 
 - Consumes: every prior component via `AppContainer`.
 - Produces: `object MediaPermissions { fun requiredMediaPermissions(sdkInt: Int): List<String> }` → API ≥33 returns `READ_MEDIA_AUDIO`+`READ_MEDIA_VIDEO`; below returns `READ_EXTERNAL_STORAGE`; adds `POST_NOTIFICATIONS` when API ≥33. A fully wired, runnable app.
 
-- [ ] **Step 1: Write failing tests** — `api33RequestsGranularMediaAndNotifications`, `api29RequestsReadExternalStorage`.
-- [ ] **Step 2: Run `./gradlew test`** — Expected: FAIL
-- [ ] **Step 3: Implement `MediaPermissions`, `PermissionGate`, `AppContainer`/`App`, and wire navigation + mini-player + permission gate into `MainActivity`.**
-- [ ] **Step 4: Run `./gradlew test` and `./gradlew assembleDebug`** — Expected: PASS
-- [ ] **Step 5: On-device manual checklist** (from the spec): install the debug APK, then verify (a) background audio with screen off + lock-screen controls, (b) headphone-unplug auto-pause, (c) video PiP floating window, (d) scan + SAF import, (e) playlist create/reorder/play-all with shuffle & repeat, (f) library search/filter, (g) empty-library and empty-playlist states.
-- [ ] **Step 6: Commit** — `feat: add permissions, navigation, and app wiring`
+- [x] **Step 1: Write failing tests** — `api33RequestsGranularMediaAndNotifications`, `api29RequestsReadExternalStorage`.
+- [x] **Step 2: Run `./gradlew test`** — Expected: FAIL
+- [x] **Step 3: Implement `MediaPermissions`, `PermissionGate`, `AppContainer`/`App`, and wire navigation + mini-player + permission gate into `MainActivity`.**
+- [x] **Step 4: Run `./gradlew test` and `./gradlew assembleDebug`** — Expected: PASS
+- [x] **Step 5: On-device manual checklist** (from the spec): install the debug APK, then verify (a) background audio with screen off + lock-screen controls, (b) headphone-unplug auto-pause, (c) video PiP floating window, (d) scan + SAF import, (e) playlist create/reorder/play-all with shuffle & repeat, (f) library search/filter, (g) empty-library and empty-playlist states.
+- [x] **Step 6: Commit** — `feat: add permissions, navigation, and app wiring`
 
 ---
 
