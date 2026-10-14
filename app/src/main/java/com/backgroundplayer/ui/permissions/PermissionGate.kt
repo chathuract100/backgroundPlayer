@@ -35,18 +35,21 @@ import com.backgroundplayer.permissions.MediaPermissions
 @Composable
 fun PermissionGate(content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val required = remember { MediaPermissions.requiredMediaPermissions(Build.VERSION.SDK_INT) }
+    // Request everything (incl. notifications) but only *gate* on the media-read
+    // permissions, so denying notifications never blocks browsing or playback.
+    val toRequest = remember { MediaPermissions.requiredMediaPermissions(Build.VERSION.SDK_INT) }
+    val blocking = remember { MediaPermissions.blockingPermissions(Build.VERSION.SDK_INT) }
 
-    fun allGranted(): Boolean = required.all {
+    fun blockingGranted(): Boolean = blocking.all {
         ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
     }
 
-    var granted by remember { mutableStateOf(allGranted()) }
+    var granted by remember { mutableStateOf(blockingGranted()) }
     var asked by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { granted = allGranted() }
+    ) { granted = blockingGranted() }
 
     if (granted) {
         content()
@@ -56,7 +59,7 @@ fun PermissionGate(content: @Composable () -> Unit) {
     PermissionRationale(
         onGrant = {
             asked = true
-            launcher.launch(required.toTypedArray())
+            launcher.launch(toRequest.toTypedArray())
         },
         onOpenSettings = {
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {

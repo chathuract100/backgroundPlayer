@@ -9,13 +9,23 @@ import android.os.Build
  * `READ_EXTERNAL_STORAGE`.
  */
 object MediaPermissions {
+    /** Everything to request up front, including the optional notifications permission. */
     fun requiredMediaPermissions(sdkInt: Int): List<String> = buildList {
+        addAll(blockingPermissions(sdkInt))
         if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
-            add(Manifest.permission.READ_MEDIA_AUDIO)
-            add(Manifest.permission.READ_MEDIA_VIDEO)
             add(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            add(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
     }
+
+    /**
+     * The permissions the app genuinely cannot function without (reading media).
+     * Notifications are intentionally excluded: denying them must not block
+     * browsing or playback — it only suppresses the media notification.
+     */
+    fun blockingPermissions(sdkInt: Int): List<String> =
+        if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
+            listOf(Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.READ_MEDIA_VIDEO)
+        } else {
+            listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
 }

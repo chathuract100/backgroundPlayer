@@ -7,9 +7,16 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.backgroundplayer.data.db.Track
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /**
  * UI-side [PlaybackController] implemented over a Media3 [MediaController] bound
@@ -34,6 +41,8 @@ class PlaybackConnection(context: Context) : PlaybackController {
         override fun onEvents(player: Player, events: Player.Events) = updateState()
     }
 
+    private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+
     init {
         val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
         val future = MediaController.Builder(context, token).buildAsync()
@@ -44,6 +53,14 @@ class PlaybackConnection(context: Context) : PlaybackController {
             },
             ContextCompat.getMainExecutor(context),
         )
+        // ExoPlayer emits no periodic position event, so poll while playing to
+        // keep the scrubber/position moving between discrete events.
+        scope.launch {
+            while (isActive) {
+                delay(POSITION_POLL_MS)
+                if (controller?.isPlaying == true) updateState()
+            }
+        }
     }
 
     override fun play(tracks: List<Track>, startIndex: Int) {
@@ -83,6 +100,7 @@ class PlaybackConnection(context: Context) : PlaybackController {
     }
 
     override fun release() {
+        scope.cancel()
         controller?.removeListener(listener)
         controller?.release()
         controller = null
@@ -91,5 +109,9 @@ class PlaybackConnection(context: Context) : PlaybackController {
     private fun updateState() {
         val c = controller ?: return
         _state.value = PlaybackStateReducer.reduce(c, queue)
+    }
+
+    private companion object {
+        const val POSITION_POLL_MS = 500L
     }
 }
