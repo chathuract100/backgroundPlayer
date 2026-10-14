@@ -1,0 +1,14 @@
+package com.backgroundplayer.data.db
+
+import androidx.room.Database
+import androidx.room.RoomDatabase
+
+@Database(
+    entities = [Track::class, Playlist::class, PlaylistTrack::class],
+    version = 1,
+    exportSchema = false,
+)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun trackDao(): TrackDao
+    abstract fun playlistDao(): PlaylistDao
+}
