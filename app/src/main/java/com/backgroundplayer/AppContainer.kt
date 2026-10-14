@@ -33,5 +33,5 @@ class AppContainer(context: Context) {
         safImporter = SafImporter(appContext, metadataReader, repository),
     )
 
-    val playback: PlaybackConnection = PlaybackConnection(appContext)
+    val playback: PlaybackConnection = PlaybackConnection(appContext, repository)
 }

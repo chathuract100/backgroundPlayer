@@ -32,6 +32,9 @@ interface LibraryRepository {
 
     suspend fun markUnavailable(trackId: Long)
 
+    /** Looks up a single track by id, or null if it no longer exists. */
+    suspend fun findById(id: Long): Track?
+
     suspend fun createPlaylist(name: String): Long
 
     suspend fun rename(id: Long, name: String)
@@ -79,6 +82,8 @@ class RoomLibraryRepository(
     }
 
     override suspend fun markUnavailable(trackId: Long) = trackDao.setAvailability(trackId, false)
+
+    override suspend fun findById(id: Long): Track? = trackDao.findById(id)
 
     override suspend fun createPlaylist(name: String): Long = playlistDao.create(name)
 

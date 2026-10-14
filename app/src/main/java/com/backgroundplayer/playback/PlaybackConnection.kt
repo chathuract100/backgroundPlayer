@@ -6,6 +6,7 @@ import androidx.core.content.ContextCompat
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.backgroundplayer.data.LibraryRepository
 import com.backgroundplayer.data.db.Track
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,10 @@ import kotlinx.coroutines.launch
  * [PlaybackStateReducer]. ViewModels depend on the [PlaybackController]
  * interface, never on this class.
  */
-class PlaybackConnection(context: Context) : PlaybackController {
+class PlaybackConnection(
+    context: Context,
+    private val repository: LibraryRepository,
+) : PlaybackController {
 
     private val _state = MutableStateFlow(PlaybackState.EMPTY)
     override val state: StateFlow<PlaybackState> = _state.asStateFlow()
@@ -38,7 +42,10 @@ class PlaybackConnection(context: Context) : PlaybackController {
         get() = controller
 
     private val listener = object : Player.Listener {
-        override fun onEvents(player: Player, events: Player.Events) = updateState()
+        override fun onEvents(player: Player, events: Player.Events) {
+            rehydrateQueueIfNeeded()
+            updateState()
+        }
     }
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
@@ -49,6 +56,7 @@ class PlaybackConnection(context: Context) : PlaybackController {
         future.addListener(
             {
                 controller = future.get().also { it.addListener(listener) }
+                rehydrateQueueIfNeeded()
                 updateState()
             },
             ContextCompat.getMainExecutor(context),
@@ -104,6 +112,25 @@ class PlaybackConnection(context: Context) : PlaybackController {
         controller?.removeListener(listener)
         controller?.release()
         controller = null
+    }
+
+    /**
+     * After a cold reconnect (e.g. the app was reopened while the service kept
+     * playing) the local [queue] is empty, so the current track can't be mapped.
+     * Rebuild it from the session's own media items — each carries its track id
+     * in [androidx.media3.common.MediaItem.mediaId] — via a repository lookup.
+     */
+    private fun rehydrateQueueIfNeeded() {
+        val c = controller ?: return
+        if (queue.isNotEmpty() || c.mediaItemCount == 0) return
+        val ids = (0 until c.mediaItemCount).map { TrackMediaItem.trackId(c.getMediaItemAt(it)) }
+        scope.launch {
+            val rebuilt = ids.map { id -> repository.findById(id) }
+            if (rebuilt.all { it != null }) {
+                queue = rebuilt.filterNotNull()
+                updateState()
+            }
+        }
     }
 
     private fun updateState() {

@@ -112,6 +112,7 @@ private class FakeLibraryRepository : LibraryRepository {
 
     override suspend fun addTrack(track: Track): Long = track.id
     override suspend fun markUnavailable(trackId: Long) = Unit
+    override suspend fun findById(id: Long): Track? = tracks.value.firstOrNull { it.id == id }
     override suspend fun createPlaylist(name: String): Long = 0
     override suspend fun rename(id: Long, name: String) = Unit
     override suspend fun delete(id: Long) = Unit

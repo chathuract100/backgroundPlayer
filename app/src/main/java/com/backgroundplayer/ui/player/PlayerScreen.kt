@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PictureInPictureAlt
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
@@ -26,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,9 +65,13 @@ fun PlayerScreen(
             if (state.isVideo) {
                 VideoSurface(player = player, modifier = Modifier.fillMaxSize())
             } else {
+                val icon = rememberVectorPainter(Icons.Filled.MusicNote)
                 AsyncImage(
                     model = state.currentTrack?.thumbnailUri,
                     contentDescription = null,
+                    placeholder = icon,
+                    error = icon,
+                    fallback = icon,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

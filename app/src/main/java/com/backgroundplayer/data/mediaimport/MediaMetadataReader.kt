@@ -36,6 +36,9 @@ class AndroidMediaMetadataReader(private val context: Context) : MediaMetadataRe
         val resolver = context.contentResolver
         val mimeType = resolver.getType(uri)
         val displayName = queryDisplayName(uri) ?: uri.lastPathSegment ?: uri.toString()
+        // Video renders a frame straight from its content URI (via Coil's video
+        // decoder). Audio art needs more than a URI, so it falls back to an icon.
+        val thumbnail = if (mimeType?.startsWith("video/") == true) uri.toString() else null
 
         val retriever = MediaMetadataRetriever()
         try {
@@ -50,7 +53,7 @@ class AndroidMediaMetadataReader(private val context: Context) : MediaMetadataRe
                 durationMs = retriever
                     .extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                     ?.toLongOrNull(),
-                thumbnailUri = null,
+                thumbnailUri = thumbnail,
             )
         } catch (e: RuntimeException) {
             // Unreadable/corrupt file: keep the entry with only what we know.
@@ -62,7 +65,7 @@ class AndroidMediaMetadataReader(private val context: Context) : MediaMetadataRe
                 artist = null,
                 album = null,
                 durationMs = null,
-                thumbnailUri = null,
+                thumbnailUri = thumbnail,
             )
         } finally {
             retriever.release()

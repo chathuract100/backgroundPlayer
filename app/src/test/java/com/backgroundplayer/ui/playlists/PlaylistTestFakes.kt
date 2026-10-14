@@ -86,6 +86,8 @@ class FakePlaylistRepository : LibraryRepository {
         MutableStateFlow(emptyList())
     override suspend fun addTrack(track: Track): Long = track.id
     override suspend fun markUnavailable(trackId: Long) = Unit
+    override suspend fun findById(id: Long): Track? =
+        data.values.firstNotNullOfOrNull { it[id] }
 }
 
 /** Records the last playback commands for assertions. */

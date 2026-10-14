@@ -70,4 +70,13 @@ class TrackDaoTest {
         assertNotNull(stored)
         assertFalse(stored!!.isAvailable)
     }
+
+    @Test
+    fun findByIdReturnsStoredTrack() = runTest {
+        val id = dao.insert(track("content://byid", "By Id"))
+        val found = dao.findById(id)
+        assertNotNull(found)
+        assertEquals("By Id", found!!.title)
+        assertEquals(null, dao.findById(999_999L))
+    }
 }

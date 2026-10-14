@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LibraryAdd
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +33,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -139,9 +141,13 @@ private fun TrackRow(track: Track, onClick: () -> Unit) {
             { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         },
         leadingContent = {
+            val icon = rememberVectorPainter(Icons.Filled.MusicNote)
             AsyncImage(
                 model = track.thumbnailUri,
                 contentDescription = null,
+                placeholder = icon,
+                error = icon,
+                fallback = icon,
                 modifier = Modifier.size(48.dp),
             )
         },

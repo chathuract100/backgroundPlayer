@@ -22,6 +22,9 @@ interface TrackDao {
     @Query("SELECT * FROM tracks WHERE uri = :uri LIMIT 1")
     suspend fun findByUri(uri: String): Track?
 
+    @Query("SELECT * FROM tracks WHERE id = :id LIMIT 1")
+    suspend fun findById(id: Long): Track?
+
     @Query("UPDATE tracks SET isAvailable = :available WHERE id = :id")
     suspend fun setAvailability(id: Long, available: Boolean)
 }
