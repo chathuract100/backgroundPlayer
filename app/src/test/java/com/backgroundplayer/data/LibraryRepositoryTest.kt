@@ -26,7 +26,7 @@ class LibraryRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repo = LibraryRepository(db.trackDao(), db.playlistDao())
+        repo = RoomLibraryRepository(db.trackDao(), db.playlistDao())
     }
 
     @After
