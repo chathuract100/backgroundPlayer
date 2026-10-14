@@ -1,6 +1,5 @@
 package com.backgroundplayer.playback
 
-import androidx.media3.common.C
 import androidx.media3.common.Player
 import com.backgroundplayer.data.db.Track
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,11 +51,7 @@ class ExoPlaybackController(private val player: Player) : PlaybackController {
     }
 
     override fun setRepeat(mode: RepeatMode) {
-        player.repeatMode = when (mode) {
-            RepeatMode.OFF -> Player.REPEAT_MODE_OFF
-            RepeatMode.ONE -> Player.REPEAT_MODE_ONE
-            RepeatMode.ALL -> Player.REPEAT_MODE_ALL
-        }
+        player.repeatMode = mode.toPlayerRepeatMode()
         updateState()
     }
 
@@ -65,26 +60,7 @@ class ExoPlaybackController(private val player: Player) : PlaybackController {
         player.release()
     }
 
-    private fun currentTrack(): Track? {
-        if (player.mediaItemCount == 0) return null
-        return queue.getOrNull(player.currentMediaItemIndex)
-    }
-
     private fun updateState() {
-        val track = currentTrack()
-        val rawDuration = player.duration
-        _state.value = PlaybackState(
-            currentTrack = track,
-            isPlaying = player.isPlaying,
-            positionMs = player.currentPosition.coerceAtLeast(0L),
-            durationMs = if (rawDuration == C.TIME_UNSET) 0L else rawDuration,
-            isVideo = track?.isVideo ?: false,
-            shuffle = player.shuffleModeEnabled,
-            repeat = when (player.repeatMode) {
-                Player.REPEAT_MODE_ONE -> RepeatMode.ONE
-                Player.REPEAT_MODE_ALL -> RepeatMode.ALL
-                else -> RepeatMode.OFF
-            },
-        )
+        _state.value = PlaybackStateReducer.reduce(player, queue)
     }
 }
