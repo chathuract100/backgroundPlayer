@@ -8,15 +8,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.backgroundplayer.playback.PipPolicy
 import com.backgroundplayer.playback.PlaybackState
+import com.backgroundplayer.ui.AppShell
+import com.backgroundplayer.ui.permissions.PermissionGate
 
 class MainActivity : ComponentActivity() {
 
@@ -33,10 +31,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val container = (application as App).container
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    AppRoot()
+                    PermissionGate {
+                        AppShell(
+                            container = container,
+                            onStateChanged = ::onPlaybackStateChanged,
+                            onMinimizeToPip = ::enterPipIfEligible,
+                        )
+                    }
                 }
             }
         }
@@ -44,6 +49,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
+        enterPipIfEligible()
+    }
+
+    private fun enterPipIfEligible() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && PipPolicy.shouldEnterPip(latestState)) {
             enterPictureInPictureMode(buildPipParams())
         }
@@ -54,14 +63,4 @@ class MainActivity : ComponentActivity() {
         PictureInPictureParams.Builder()
             .setAspectRatio(Rational(16, 9))
             .build()
-}
-
-@Composable
-private fun AppRoot() {
-    Text(
-        text = "backgroundPlayer",
-        modifier = Modifier
-            .fillMaxSize()
-            .wrapContentSize(Alignment.Center),
-    )
 }

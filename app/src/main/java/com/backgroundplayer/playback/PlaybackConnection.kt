@@ -26,6 +26,10 @@ class PlaybackConnection(context: Context) : PlaybackController {
     private var controller: MediaController? = null
     private var queue: List<Track> = emptyList()
 
+    /** The bound controller as a [Player], for attaching to a video surface. */
+    val mediaPlayer: Player?
+        get() = controller
+
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) = updateState()
     }
