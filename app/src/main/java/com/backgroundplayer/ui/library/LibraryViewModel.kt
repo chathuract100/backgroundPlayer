@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.backgroundplayer.data.LibraryRepository
 import com.backgroundplayer.data.MediaFilter
+import com.backgroundplayer.data.db.Playlist
 import com.backgroundplayer.data.db.Track
 import com.backgroundplayer.data.mediaimport.MediaImporter
 import com.backgroundplayer.playback.PlaybackController
@@ -50,8 +51,35 @@ class LibraryViewModel(
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, LibraryUiState())
 
+    /** All playlists, so a track can be added to one from the library. */
+    val playlists: StateFlow<List<Playlist>> =
+        repository.playlists().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     fun setFilter(filter: MediaFilter) {
         this.filter.value = filter
+    }
+
+    /** Appends [trackId] to an existing playlist. */
+    fun addToPlaylist(playlistId: Long, trackId: Long) {
+        viewModelScope.launch { repository.addToPlaylist(playlistId, trackId) }
+    }
+
+    /** Creates a new playlist named [name] and adds [trackId] to it. */
+    fun createPlaylistAndAdd(name: String, trackId: Long) {
+        viewModelScope.launch {
+            val id = repository.createPlaylist(name)
+            repository.addToPlaylist(id, trackId)
+        }
+    }
+
+    /** Hides [trackId] from the library without deleting the underlying file. */
+    fun removeFromLibrary(trackId: Long) {
+        viewModelScope.launch { repository.markUnavailable(trackId) }
+    }
+
+    /** Restores a track hidden by [removeFromLibrary]. */
+    fun undoRemove(trackId: Long) {
+        viewModelScope.launch { repository.markAvailable(trackId) }
     }
 
     fun setQuery(query: String) {

@@ -32,6 +32,9 @@ interface LibraryRepository {
 
     suspend fun markUnavailable(trackId: Long)
 
+    /** Restores a previously hidden track so it reappears in [library]. */
+    suspend fun markAvailable(trackId: Long)
+
     /** Looks up a single track by id, or null if it no longer exists. */
     suspend fun findById(id: Long): Track?
 
@@ -82,6 +85,8 @@ class RoomLibraryRepository(
     }
 
     override suspend fun markUnavailable(trackId: Long) = trackDao.setAvailability(trackId, false)
+
+    override suspend fun markAvailable(trackId: Long) = trackDao.setAvailability(trackId, true)
 
     override suspend fun findById(id: Long): Track? = trackDao.findById(id)
 

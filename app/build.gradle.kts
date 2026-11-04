@@ -67,6 +67,7 @@ dependencies {
 
     implementation(libs.coil.compose)
     implementation(libs.coil.video)
+    implementation(libs.androidx.palette)
     implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.junit)

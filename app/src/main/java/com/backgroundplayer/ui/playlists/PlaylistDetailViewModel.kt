@@ -3,6 +3,7 @@ package com.backgroundplayer.ui.playlists
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.backgroundplayer.data.LibraryRepository
+import com.backgroundplayer.data.MediaFilter
 import com.backgroundplayer.data.db.Track
 import com.backgroundplayer.playback.PlaybackController
 import com.backgroundplayer.playback.RepeatMode
@@ -25,6 +26,23 @@ class PlaylistDetailViewModel(
     val tracks: StateFlow<List<Track>> =
         repository.playlistTracks(playlistId)
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** The full library, used as the source for the "add tracks" picker. */
+    val availableTracks: StateFlow<List<Track>> =
+        repository.library(MediaFilter.ALL, "")
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** Appends each of [trackIds] to this playlist, in order. */
+    fun addTracks(trackIds: List<Long>) {
+        viewModelScope.launch {
+            trackIds.forEach { repository.addToPlaylist(playlistId, it) }
+        }
+    }
+
+    /** Re-adds a track removed via [remove] (appended at the end). */
+    fun undoRemove(trackId: Long) {
+        viewModelScope.launch { repository.addToPlaylist(playlistId, trackId) }
+    }
 
     fun reorder(from: Int, to: Int) {
         viewModelScope.launch {

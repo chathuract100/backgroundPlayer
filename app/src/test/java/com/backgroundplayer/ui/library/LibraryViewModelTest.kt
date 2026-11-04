@@ -79,6 +79,61 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun addToPlaylistForwardsToRepository() = runTest(dispatcher) {
+        repo.tracks.value = listOf(track(7, "Song"))
+        val pid = repo.createPlaylist("Mix")
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+
+        vm.addToPlaylist(pid, 7)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(listOf(pid to 7L), repo.addedToPlaylist)
+    }
+
+    @Test
+    fun createPlaylistAndAddCreatesThenAdds() = runTest(dispatcher) {
+        repo.tracks.value = listOf(track(7, "Song"))
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+
+        vm.createPlaylistAndAdd("Road trip", 7)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(listOf("Road trip"), vm.playlists.value.map { it.name })
+        val newId = vm.playlists.value.first().id
+        assertEquals(listOf(newId to 7L), repo.addedToPlaylist)
+    }
+
+    @Test
+    fun removeFromLibraryHidesTrack() = runTest(dispatcher) {
+        repo.tracks.value = listOf(track(1, "A"), track(2, "B"))
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+
+        vm.removeFromLibrary(1)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(listOf("B"), vm.uiState.value.tracks.map { it.title })
+    }
+
+    @Test
+    fun undoRemoveRestoresTrack() = runTest(dispatcher) {
+        repo.tracks.value = listOf(track(1, "A"))
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+
+        vm.removeFromLibrary(1)
+        testScheduler.advanceUntilIdle()
+        assertTrue(vm.uiState.value.tracks.isEmpty())
+
+        vm.undoRemove(1)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(listOf("A"), vm.uiState.value.tracks.map { it.title })
+    }
+
+    @Test
     fun playTrackStartsAtSelectedIndex() = runTest(dispatcher) {
         repo.tracks.value = listOf(track(1, "A"), track(2, "B"), track(3, "C"))
         val vm = viewModel()
@@ -94,31 +149,51 @@ class LibraryViewModelTest {
 
 private class FakeLibraryRepository : LibraryRepository {
     val tracks = MutableStateFlow<List<Track>>(emptyList())
+    private val playlistsFlow = MutableStateFlow<List<Playlist>>(emptyList())
+    private var nextPlaylistId = 1L
+
+    /** Records (playlistId, trackId) pairs added, in order, for assertions. */
+    val addedToPlaylist = mutableListOf<Pair<Long, Long>>()
 
     override fun library(filter: MediaFilter, query: String): Flow<List<Track>> =
         tracks.map { list ->
-            list.filter {
-                when (filter) {
-                    MediaFilter.ALL -> true
-                    MediaFilter.AUDIO -> !it.isVideo
-                    MediaFilter.VIDEO -> it.isVideo
+            list.filter { it.isAvailable }
+                .filter {
+                    when (filter) {
+                        MediaFilter.ALL -> true
+                        MediaFilter.AUDIO -> !it.isVideo
+                        MediaFilter.VIDEO -> it.isVideo
+                    }
+                }.filter { t ->
+                    query.isBlank() ||
+                        t.title.contains(query, ignoreCase = true) ||
+                        t.artist?.contains(query, ignoreCase = true) == true
                 }
-            }.filter { t ->
-                query.isBlank() ||
-                    t.title.contains(query, ignoreCase = true) ||
-                    t.artist?.contains(query, ignoreCase = true) == true
-            }
         }
 
     override suspend fun addTrack(track: Track): Long = track.id
-    override suspend fun markUnavailable(trackId: Long) = Unit
+    override suspend fun markUnavailable(trackId: Long) = setAvailability(trackId, false)
+    override suspend fun markAvailable(trackId: Long) = setAvailability(trackId, true)
+
+    private fun setAvailability(trackId: Long, available: Boolean) {
+        tracks.value = tracks.value.map {
+            if (it.id == trackId) it.copy(isAvailable = available) else it
+        }
+    }
+
     override suspend fun findById(id: Long): Track? = tracks.value.firstOrNull { it.id == id }
-    override suspend fun createPlaylist(name: String): Long = 0
+    override suspend fun createPlaylist(name: String): Long {
+        val id = nextPlaylistId++
+        playlistsFlow.value = playlistsFlow.value + Playlist(id = id, name = name, createdAt = id)
+        return id
+    }
     override suspend fun rename(id: Long, name: String) = Unit
     override suspend fun delete(id: Long) = Unit
-    override fun playlists(): Flow<List<Playlist>> = MutableStateFlow(emptyList())
+    override fun playlists(): Flow<List<Playlist>> = playlistsFlow
     override fun playlistTracks(id: Long): Flow<List<Track>> = MutableStateFlow(emptyList())
-    override suspend fun addToPlaylist(playlistId: Long, trackId: Long) = Unit
+    override suspend fun addToPlaylist(playlistId: Long, trackId: Long) {
+        addedToPlaylist += playlistId to trackId
+    }
     override suspend fun reorder(playlistId: Long, trackId: Long, newPosition: Int) = Unit
     override suspend fun removeFromPlaylist(playlistId: Long, trackId: Long) = Unit
 }
