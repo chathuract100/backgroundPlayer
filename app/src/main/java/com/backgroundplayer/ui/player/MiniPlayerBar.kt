@@ -62,6 +62,11 @@ fun MiniPlayerBar(
                 placeholder = icon,
                 error = icon,
                 fallback = icon,
+                colorFilter = if (track.thumbnailUri == null) {
+                    androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    null
+                },
                 modifier = Modifier.size(44.dp).clip(RoundedCornerShape(8.dp)),
             )
             Spacer(Modifier.size(12.dp))

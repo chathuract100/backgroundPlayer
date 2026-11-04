@@ -26,7 +26,8 @@ private val DarkColors = darkColorScheme(
     surfaceContainerHigh = SurfaceVariant,
     error = ErrorRed,
     onError = OnDark,
-    outline = SurfaceVariant,
+    outline = OutlineColor,
+    outlineVariant = SurfaceVariant,
 )
 
 private val AppShapes = Shapes(

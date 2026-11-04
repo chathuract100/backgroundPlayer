@@ -31,6 +31,9 @@ val OnDark = Color(0xFFF3ECFF)
 val OnDarkMuted = Color(0xFFB4A8D6)
 val OnAccent = Color(0xFF2A0A17)
 
+/** Visible border/outline on both the dark surfaces and the gradient. */
+val OutlineColor = Color(0xFF6E6694)
+
 val ErrorRed = Color(0xFFFF5A6A)
 
 // --- Background gradient base + glow blobs ---

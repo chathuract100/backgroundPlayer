@@ -130,6 +130,9 @@ private fun NameDialog(
                 value = text,
                 onValueChange = { text = it },
                 singleLine = true,
+                label = { Text("Playlist name") },
+                placeholder = { Text("e.g. Favourites") },
+                modifier = Modifier.fillMaxWidth(),
             )
         },
         confirmButton = {

@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -227,6 +228,11 @@ private fun TrackRow(
                 placeholder = icon,
                 error = icon,
                 fallback = icon,
+                colorFilter = if (track.thumbnailUri == null) {
+                    ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    null
+                },
                 modifier = Modifier.size(48.dp),
             )
         },
@@ -309,7 +315,14 @@ private fun NewPlaylistDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit
         onDismissRequest = onDismiss,
         title = { Text("New playlist") },
         text = {
-            OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true)
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                singleLine = true,
+                label = { Text("Playlist name") },
+                placeholder = { Text("e.g. Favourites") },
+                modifier = Modifier.fillMaxWidth(),
+            )
         },
         confirmButton = {
             TextButton(
