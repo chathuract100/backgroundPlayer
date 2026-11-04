@@ -3,19 +3,41 @@ package com.backgroundplayer.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Dark "music-player" palette: a near-black canvas with elevated charcoal cards
- * and a single vibrant violet accent. Change [Accent] to re-skin the whole app.
+ * "Sunset glass" palette: a deep navy/purple canvas with soft out-of-focus color
+ * blobs (orange -> pink -> magenta, plus a cool accent) glowing behind frosted
+ * translucent surfaces. The warm sunset gradient ([SunsetGradient]) is the
+ * primary accent used on the play button, scrubber and calls to action.
  */
-val Accent = Color(0xFF8B5CF6)
-val AccentVariant = Color(0xFFA78BFA)
 
-val Background = Color(0xFF0F0F12)
-val Surface = Color(0xFF17171C)
-val SurfaceElevated = Color(0xFF1E1E26)
-val SurfaceVariant = Color(0xFF26262F)
+// --- Accent (sunset) ---
+val Accent = Color(0xFFFF2E7E)        // hot pink — primary
+val AccentVariant = Color(0xFFFF8A3D) // orange
+val AccentMagenta = Color(0xFFB52BE0) // magenta/purple
 
-val OnDark = Color(0xFFECECF1)
-val OnDarkMuted = Color(0xFFA6A6B2)
-val OnAccent = Color(0xFF1A1030)
+/** Warm sunset gradient, orange -> pink -> magenta. */
+val SunsetGradient = listOf(
+    Color(0xFFFF9A3D),
+    Color(0xFFFF2E7E),
+    Color(0xFFB52BE0),
+)
 
-val ErrorRed = Color(0xFFF2555A)
+// --- Dark glass surfaces ---
+val Background = Color(0xFF0C0A1A)
+val Surface = Color(0xFF17132B)
+val SurfaceElevated = Color(0xFF201A3A)
+val SurfaceVariant = Color(0xFF2A2348)
+
+val OnDark = Color(0xFFF3ECFF)
+val OnDarkMuted = Color(0xFFB4A8D6)
+val OnAccent = Color(0xFF2A0A17)
+
+val ErrorRed = Color(0xFFFF5A6A)
+
+// --- Background gradient base + glow blobs ---
+val BgTopRight = Color(0xFF0A0E29)    // deep navy
+val BgBottomLeft = Color(0xFF281046)  // deep purple
+
+val BlobOrange = Color(0xFFFF7A2F)
+val BlobPink = Color(0xFFFF2E7E)
+val BlobCoral = Color(0xFFFF4D6D)
+val BlobBlue = Color(0xFF3E6BFF)

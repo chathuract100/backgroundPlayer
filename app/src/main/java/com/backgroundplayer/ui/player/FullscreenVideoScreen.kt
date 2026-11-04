@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -135,7 +134,7 @@ fun FullscreenVideoScreen(
                         .padding(horizontal = 20.dp, vertical = 16.dp),
                 ) {
                     Text(formatTime(position), color = Color.White)
-                    Slider(
+                    GradientSlider(
                         value = position.toFloat(),
                         onValueChange = { onSeek(it.toLong()) },
                         valueRange = 0f..(if (duration == 0L) 1f else duration.toFloat()),
