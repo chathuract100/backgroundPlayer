@@ -79,6 +79,17 @@ class LibraryRepositoryTest {
     }
 
     @Test
+    fun markAvailableRestoresHiddenTrack() = runTest {
+        val id = repo.addTrack(track("content://gone", title = "Gone"))
+        repo.markUnavailable(id)
+        assertEquals(emptyList<String>(), repo.library(MediaFilter.ALL, "").first().map { it.title })
+
+        repo.markAvailable(id)
+
+        assertEquals(listOf("Gone"), repo.library(MediaFilter.ALL, "").first().map { it.title })
+    }
+
+    @Test
     fun addToPlaylistAppendsAtEnd() = runTest {
         val a = repo.addTrack(track("content://a", title = "A"))
         val b = repo.addTrack(track("content://b", title = "B"))

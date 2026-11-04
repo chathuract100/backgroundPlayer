@@ -95,6 +95,46 @@ class PlaylistDetailViewModelTest {
     }
 
     @Test
+    fun addTracksAppendsAllToPlaylist() = runTest(dispatcher) {
+        val pid = repo.seed("list", listOf("A"))
+        val lib = repo.seedLibrary(listOf("X", "Y"))
+        val vm = vmFor(pid)
+        testScheduler.advanceUntilIdle()
+
+        vm.addTracks(lib.map { it.id })
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(listOf("A", "X", "Y"), vm.tracks.value.map { it.title })
+    }
+
+    @Test
+    fun availableTracksExposesLibrary() = runTest(dispatcher) {
+        val pid = repo.seed("list", emptyList())
+        repo.seedLibrary(listOf("X", "Y"))
+        val vm = vmFor(pid)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(listOf("X", "Y"), vm.availableTracks.value.map { it.title })
+    }
+
+    @Test
+    fun undoRemoveReAddsTrack() = runTest(dispatcher) {
+        val pid = repo.seed("list", listOf("A", "B"))
+        val vm = vmFor(pid)
+        testScheduler.advanceUntilIdle()
+        val bId = vm.tracks.value.first { it.title == "B" }.id
+
+        vm.remove(bId)
+        testScheduler.advanceUntilIdle()
+        assertEquals(listOf("A"), vm.tracks.value.map { it.title })
+
+        vm.undoRemove(bId)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(listOf("A", "B"), vm.tracks.value.map { it.title })
+    }
+
+    @Test
     fun playAllWithShuffleEnablesShuffle() = runTest(dispatcher) {
         val pid = repo.seed("list", listOf("A", "B"))
         val vm = vmFor(pid)

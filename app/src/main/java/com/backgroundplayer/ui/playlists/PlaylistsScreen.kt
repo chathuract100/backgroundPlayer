@@ -16,11 +16,13 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import com.backgroundplayer.data.db.Playlist
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,10 +43,17 @@ fun PlaylistsScreen(
     val playlists by viewModel.playlists.collectAsState()
     var creating by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<Playlist?>(null) }
+    var deleting by remember { mutableStateOf<Playlist?>(null) }
 
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text("Playlists") }) },
+        containerColor = Color.Transparent,
+        topBar = {
+            TopAppBar(
+                title = { Text("Playlists") },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { creating = true }) {
                 Icon(Icons.Filled.Add, contentDescription = "New playlist")
@@ -53,13 +63,14 @@ fun PlaylistsScreen(
         LazyColumn(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
             items(playlists, key = { it.id }) { playlist ->
                 ListItem(
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     headlineContent = { Text(playlist.name) },
                     trailingContent = {
                         androidx.compose.foundation.layout.Row {
                             IconButton(onClick = { renaming = playlist }) {
                                 Icon(Icons.Filled.Edit, contentDescription = "Rename")
                             }
-                            IconButton(onClick = { viewModel.delete(playlist.id) }) {
+                            IconButton(onClick = { deleting = playlist }) {
                                 Icon(Icons.Filled.Delete, contentDescription = "Delete")
                             }
                         }
@@ -85,6 +96,20 @@ fun PlaylistsScreen(
             initial = playlist.name,
             onConfirm = { name -> viewModel.rename(playlist.id, name); renaming = null },
             onDismiss = { renaming = null },
+        )
+    }
+
+    deleting?.let { playlist ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text("Delete playlist?") },
+            text = { Text("“${playlist.name}” will be removed. Your media files are not deleted.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.delete(playlist.id); deleting = null }) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } },
         )
     }
 }

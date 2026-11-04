@@ -9,23 +9,29 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.drawable.Icon
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.Color
+import com.backgroundplayer.ui.theme.BackgroundPlayerTheme
+import com.backgroundplayer.ui.theme.GradientBackground
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import com.backgroundplayer.playback.OverlayPolicy
 import com.backgroundplayer.playback.PipPolicy
 import com.backgroundplayer.playback.PlaybackState
 import com.backgroundplayer.ui.AppShell
+import com.backgroundplayer.ui.overlay.FloatingPlayerController
 import com.backgroundplayer.ui.permissions.PermissionGate
 import com.backgroundplayer.ui.player.VideoSurface
 
@@ -36,6 +42,9 @@ class MainActivity : ComponentActivity() {
     private var latestState: PlaybackState = PlaybackState.EMPTY
 
     private var inPip by mutableStateOf(false)
+
+    /** The floating over-other-apps tile for audio; created in [onCreate]. */
+    private lateinit var floating: FloatingPlayerController
 
     /** Routes the PiP window's RemoteAction buttons to the playback controller. */
     private val pipReceiver = object : BroadcastReceiver() {
@@ -60,6 +69,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val container = (application as App).container
 
+        floating = FloatingPlayerController(
+            context = this,
+            playback = container.playback,
+            onTapReopen = ::reopenFromOverlay,
+        )
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             ContextCompat.registerReceiver(
                 this,
@@ -70,21 +85,26 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    if (inPip) {
-                        // In PiP, show only the video — the system renders the controls.
+            BackgroundPlayerTheme {
+                if (inPip) {
+                    // In PiP, show only the video — the system renders the controls.
+                    Surface(modifier = Modifier.fillMaxSize()) {
                         VideoSurface(
                             player = container.playback.mediaPlayer,
                             modifier = Modifier.fillMaxSize(),
                         )
-                    } else {
-                        PermissionGate {
-                            AppShell(
-                                container = container,
-                                onStateChanged = ::onPlaybackStateChanged,
-                                onMinimizeToPip = ::enterPipIfEligible,
-                            )
+                    }
+                } else {
+                    GradientBackground(modifier = Modifier.fillMaxSize()) {
+                        Surface(color = Color.Transparent, modifier = Modifier.fillMaxSize()) {
+                            PermissionGate {
+                                AppShell(
+                                    container = container,
+                                    onStateChanged = ::onPlaybackStateChanged,
+                                    onMinimizeToPip = ::enterPipIfEligible,
+                                    onMinimizeToFloat = ::enterFloatingOrRequest,
+                                )
+                            }
                         }
                     }
                 }
@@ -94,7 +114,43 @@ class MainActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        enterPipIfEligible()
+        // Video floats via Picture-in-Picture; audio floats via the overlay tile.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && PipPolicy.shouldEnterPip(latestState)) {
+            enterPictureInPictureMode(buildPipParams())
+        } else if (OverlayPolicy.shouldShow(latestState, Settings.canDrawOverlays(this))) {
+            floating.show()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Back in the app: the floating tile is no longer needed.
+        floating.hide()
+    }
+
+    /** Called when the floating tile is tapped: bring the app back to the front. */
+    private fun reopenFromOverlay() {
+        val intent = Intent(this, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        startActivity(intent)
+    }
+
+    /**
+     * Audio "pop out": show the floating tile and background the app, or send the
+     * user to grant the overlay permission if it isn't granted yet.
+     */
+    private fun enterFloatingOrRequest() {
+        if (Settings.canDrawOverlays(this)) {
+            floating.show()
+            moveTaskToBack(true)
+        } else {
+            startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName"),
+                ),
+            )
+        }
     }
 
     override fun onPictureInPictureModeChanged(
@@ -106,6 +162,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        floating.hide()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             runCatching { unregisterReceiver(pipReceiver) }
         }

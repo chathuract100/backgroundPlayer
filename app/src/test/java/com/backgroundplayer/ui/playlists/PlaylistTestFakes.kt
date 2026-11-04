@@ -21,16 +21,17 @@ class FakePlaylistRepository : LibraryRepository {
 
     private val playlistsFlow = MutableStateFlow<List<Playlist>>(emptyList())
     private val positions = mutableMapOf<Long, MutableMap<Long, Int>>()
-    private val data = mutableMapOf<Long, MutableMap<Long, Track>>()
     private val flows = mutableMapOf<Long, MutableStateFlow<List<Track>>>()
+    private val libraryFlow = MutableStateFlow<List<Track>>(emptyList())
+    /** Every track that exists, keyed by id, independent of playlist membership. */
+    private val allTracks = mutableMapOf<Long, Track>()
     private var nextId = 1L
 
     private fun flow(pid: Long) = flows.getOrPut(pid) { MutableStateFlow(emptyList()) }
 
     private fun recompute(pid: Long) {
         val order = positions[pid] ?: emptyMap()
-        val tracks = data[pid] ?: emptyMap()
-        flow(pid).value = order.entries.sortedBy { it.value }.mapNotNull { tracks[it.key] }
+        flow(pid).value = order.entries.sortedBy { it.value }.mapNotNull { allTracks[it.key] }
     }
 
     /** Seeds a playlist with freshly-created tracks and returns the playlist id. */
@@ -41,13 +42,22 @@ class FakePlaylistRepository : LibraryRepository {
             Track(id = (pid * 100 + i), uri = "content://$pid/$i", title = title)
         }
         val posMap = positions.getOrPut(pid) { mutableMapOf() }
-        val dataMap = data.getOrPut(pid) { mutableMapOf() }
         tracks.forEachIndexed { i, t ->
-            dataMap[t.id] = t
+            allTracks[t.id] = t
             posMap[t.id] = i
         }
         recompute(pid)
         return pid
+    }
+
+    /** Seeds standalone library tracks (not in any playlist) and returns them. */
+    fun seedLibrary(titles: List<String>): List<Track> {
+        val tracks = titles.mapIndexed { i, title ->
+            Track(id = (900L + i), uri = "content://lib/$i", title = title)
+        }
+        tracks.forEach { allTracks[it.id] = it }
+        libraryFlow.value = tracks
+        return tracks
     }
 
     override suspend fun createPlaylist(name: String): Long {
@@ -75,19 +85,24 @@ class FakePlaylistRepository : LibraryRepository {
 
     override suspend fun removeFromPlaylist(playlistId: Long, trackId: Long) {
         positions[playlistId]?.remove(trackId)
-        data[playlistId]?.remove(trackId)
         recompute(playlistId)
     }
 
-    override suspend fun addToPlaylist(playlistId: Long, trackId: Long) = Unit
+    override suspend fun addToPlaylist(playlistId: Long, trackId: Long) {
+        if (!allTracks.containsKey(trackId)) return
+        val posMap = positions.getOrPut(playlistId) { mutableMapOf() }
+        if (posMap.containsKey(trackId)) return
+        posMap[trackId] = (posMap.values.maxOrNull() ?: -1) + 1
+        recompute(playlistId)
+    }
+
+    override fun library(filter: MediaFilter, query: String): Flow<List<Track>> = libraryFlow
 
     // Unused by playlist ViewModels.
-    override fun library(filter: MediaFilter, query: String): Flow<List<Track>> =
-        MutableStateFlow(emptyList())
     override suspend fun addTrack(track: Track): Long = track.id
     override suspend fun markUnavailable(trackId: Long) = Unit
-    override suspend fun findById(id: Long): Track? =
-        data.values.firstNotNullOfOrNull { it[id] }
+    override suspend fun markAvailable(trackId: Long) = Unit
+    override suspend fun findById(id: Long): Track? = allTracks[id]
 }
 
 /** Records the last playback commands for assertions. */
