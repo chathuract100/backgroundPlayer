@@ -71,7 +71,7 @@ class FloatingPlayerController(
             scaleType = ImageView.ScaleType.CENTER_CROP
             background = GradientDrawable().apply {
                 cornerRadius = dp(8).toFloat()
-                setColor(Color.parseColor("#8B5CF6"))
+                setColor(Color.parseColor("#FF2E7E"))
             }
             clipToOutline = true
         }
