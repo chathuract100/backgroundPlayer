@@ -315,7 +315,14 @@ private fun NewPlaylistDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit
         onDismissRequest = onDismiss,
         title = { Text("New playlist") },
         text = {
-            OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true)
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                singleLine = true,
+                label = { Text("Playlist name") },
+                placeholder = { Text("e.g. Favourites") },
+                modifier = Modifier.fillMaxWidth(),
+            )
         },
         confirmButton = {
             TextButton(
