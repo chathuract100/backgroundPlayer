@@ -18,6 +18,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Color
 import com.backgroundplayer.ui.theme.BackgroundPlayerTheme
@@ -96,7 +97,11 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     GradientBackground(modifier = Modifier.fillMaxSize()) {
-                        Surface(color = Color.Transparent, modifier = Modifier.fillMaxSize()) {
+                        Surface(
+                            color = Color.Transparent,
+                            contentColor = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
                             PermissionGate {
                                 AppShell(
                                     container = container,

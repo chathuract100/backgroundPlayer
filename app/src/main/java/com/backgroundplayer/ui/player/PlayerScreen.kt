@@ -37,8 +37,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
@@ -114,7 +117,7 @@ fun PlayerScreen(
                 Text(
                     text = "Now playing",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.9f),
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                 )
@@ -182,6 +185,11 @@ fun PlayerScreen(
                         error = icon,
                         fallback = icon,
                         contentScale = ContentScale.Crop,
+                        colorFilter = if (state.currentTrack?.thumbnailUri == null) {
+                            ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else {
+                            null
+                        },
                         modifier = Modifier
                             .fillMaxSize(0.78f)
                             .clip(CircleShape)
@@ -193,7 +201,14 @@ fun PlayerScreen(
 
             Text(
                 text = state.currentTrack?.title ?: "Nothing playing",
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.55f),
+                        offset = Offset(0f, 2f),
+                        blurRadius = 8f,
+                    ),
+                ),
+                color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
@@ -203,7 +218,7 @@ fun PlayerScreen(
                 Text(
                     it,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.75f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 4.dp),
@@ -219,8 +234,8 @@ fun PlayerScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(formatMs(position), style = MaterialTheme.typography.labelMedium)
-                Text(formatMs(duration), style = MaterialTheme.typography.labelMedium)
+                Text(formatMs(position), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.85f))
+                Text(formatMs(duration), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.85f))
             }
 
             Row(

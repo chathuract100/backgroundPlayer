@@ -161,7 +161,11 @@ fun AppShell(
         enter = slideInVertically(tween(320)) { it } + fadeIn(tween(320)),
         exit = slideOutVertically(tween(320)) { it } + fadeOut(tween(320)),
     ) {
-        Surface(color = Color.Transparent, modifier = Modifier.fillMaxSize()) {
+        Surface(
+            color = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.fillMaxSize(),
+        ) {
             PlayerScreen(
                 state = state,
                 player = playback.mediaPlayer,
